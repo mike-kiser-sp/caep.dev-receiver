@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"time"
 
-	events "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf_events"
+	events "github.com/mike-kiser-sp/caep.dev-receiver/pkg/ssf_events"
 
 	"github.com/golang-jwt/jwt/v5"
 )
