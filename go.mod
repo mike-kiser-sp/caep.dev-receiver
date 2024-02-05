@@ -1,4 +1,4 @@
-module github.com/sgnl-ai/caep.dev-receiver
+module github.com/mike-kiser-sp/caep.dev-receiver
 
 go 1.20
 
