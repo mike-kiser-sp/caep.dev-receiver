@@ -1,4 +1,4 @@
-module github.com/mike-kiser-sp/caep.dev-receiver
+module github.com/mike-kiser-sp/receiver
 
 go 1.20
 
