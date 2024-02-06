@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/sgnl-ai/caep.dev-receiver/pkg"
-	events "github.com/sgnl-ai/caep.dev-receiver/pkg/ssf_events"
+	"github.com/mike-kiser-sp/caep.dev-receiver/pkg"
+	events "github.com/mike-kiser-sp/caep.dev-receiver/pkg/ssf_events"
 )
 
 func main() {
