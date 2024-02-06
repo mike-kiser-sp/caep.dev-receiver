@@ -10,8 +10,8 @@ simply add the following lines to your Go files:
 
 ~~~ go
 import {
-  "github.com/mike-kiser-sp/caep.dev-receiver/pkg"
-  "github.com/mike-kiser-sp/caep.dev-receiver/pkg/ssf-events"
+  "github.com/mike-kiser-sp/receiver/pkg"
+  "github.com/mike-kiser-sp/receiver/pkg/ssf-events"
 }
 ~~~
 
