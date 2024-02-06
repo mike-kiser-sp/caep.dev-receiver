@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mike-kiser-sp/caep.dev-receiver/pkg"
-	events "github.com/mike-kiser-sp/caep.dev-receiver/pkg/ssf_events"
+	"github.com/mike-kiser-sp/receiver/pkg"
+	events "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
 )
 
 func main() {
