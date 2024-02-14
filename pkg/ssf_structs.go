@@ -1,6 +1,9 @@
 package pkg
 
-import event "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
+import (
+	"github.com/MicahParks/keyfunc/v3"
+	event "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
+)
 
 // Represents the interface for the SSF receiver with user facing
 // methods
@@ -25,6 +28,9 @@ type SsfReceiver interface {
 
 	// Disable the stream
 	DisableStream() (StreamStatus, error)
+
+	// Disable the stream
+	PrintStream()
 }
 
 // The struct that contains all the necessary fields and methods for the
@@ -69,6 +75,9 @@ type SsfReceiverImplementation struct {
 
 	// terminate is used to stop the push interval routine
 	terminate chan bool
+
+	// JWKS from the transmitter
+	transmitterJwks keyfunc.Keyfunc
 }
 
 // Struct used to read a Transmitter's configuration
@@ -92,6 +101,7 @@ type CreateStreamReq struct {
 // Struct that defines the deliver method for the Create Stream Request
 type SsfDelivery struct {
 	DeliveryMethod string `json:"method"`
+	EndpointUrl    string `json:"endpoint_url,omitempty"`
 }
 
 // Struct to make a request to poll SSF Events to the
@@ -127,4 +137,14 @@ var EnumToStringStatusMap = map[StreamStatus]string{
 	StreamEnabled:  "enabled",
 	StreamPaused:   "paused",
 	StreamDisabled: "disabled",
+}
+
+type StreamConfig struct {
+	StreamId        string      `json:"stream_id"`
+	Issuer          string      `json:"iss"`
+	Audience        string      `json:"aud"`
+	EventsSupported []string    `json:events_supported`
+	EventsRequested []string    `json:events_requested`
+	EventsDelivered []string    `json:events_delivered`
+	Delivery        SsfDelivery `json:"delivery"`
 }
