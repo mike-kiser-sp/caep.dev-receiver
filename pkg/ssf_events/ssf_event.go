@@ -3,7 +3,8 @@ package ssf_events
 import (
 	"errors"
 	"fmt"
-	"strconv"
+	"log"
+	"time"
 )
 
 type EventType int
@@ -83,13 +84,15 @@ var EventEnum = map[string]EventType{
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
-func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
+func EventStructFromEvent(eventUri string, eventSubject interface{}, eventDetails interface{}, claimsJson map[string]interface{}) (SsfEvent, error) {
 	eventEnum := EventEnum[eventUri]
-	subjectAttributes, ok := eventSubject.(map[string]interface{})
+	eventAttributes, ok := eventDetails.(map[string]interface{})
+	subIdAttributes, ok := eventSubject.(map[string]interface{})
 
+	log.Println("instide construct event")
 	// Special Event Types
 	if eventEnum == VerificationEventType {
-		state, ok := subjectAttributes["state"].(string)
+		state, ok := eventAttributes["state"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse state")
 		}
@@ -101,12 +104,12 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		return &event, nil
 
 	} else if eventEnum == StreamUpdatedEventType {
-		status, ok := subjectAttributes["status"].(string)
+		status, ok := eventAttributes["status"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse state")
 		}
 
-		reason, _ := subjectAttributes["reason"].(string)
+		reason, _ := eventAttributes["reason"].(string)
 
 		event := StreamUpdatedEvent{
 			Json:   claimsJson,
@@ -115,26 +118,35 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		}
 		return &event, nil
 	}
-
-	timestamp, err := strconv.ParseInt(subjectAttributes["timestamp"].(string), 10, 64)
-	if !ok || err != nil {
-		return nil, errors.New("unable to parse event subject")
+	log.Println("after event switch ")
+	log.Println("subjAttrs: ", eventAttributes)
+	// caep dev treats this as a string, others should see it as an int
+	//	timestamp, err := strconv.ParseInt(eventAttributes["event_timestamp"].(float64), 10, 64)
+	timestamp := time.Now().Unix()
+	if eventAttributes["event_timestamp"] != nil {
+		timestamp = int64(eventAttributes["event_timestamp"].(float64))
 	}
 
-	format, err := GetSubjectFormat(subjectAttributes["subject"].(map[string]interface{}))
+	if !ok {
+		return nil, errors.New("unable to parse event subject")
+	}
+	log.Println("before get subj format")
+	log.Println(subIdAttributes["sub_id"])
+	format, err := GetSubjectFormat(subIdAttributes["sub_id"].(map[string]interface{}))
 	if err != nil {
 		return nil, err
 	}
+	log.Println("after get subj format")
 
 	// Add more Ssf Events as desired
 	switch eventEnum {
 	case CredentialChange:
-		credentialType, ok := subjectAttributes["credentialType"].(float64)
+		credentialType, ok := eventAttributes["credentialType"].(float64)
 		if !ok {
 			return nil, errors.New("unable to parse credential type")
 		}
 
-		changeType, ok := subjectAttributes["changeType"].(float64)
+		changeType, ok := eventAttributes["changeType"].(float64)
 		if !ok {
 			return nil, errors.New("unable to parse credential type")
 		}
@@ -142,7 +154,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := CredentialChangeEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subIdAttributes["sub_id"].(map[string]interface{}),
 			EventTimestamp: timestamp,
 			CredentialType: CredentialTypeEnumMap[uint64(credentialType)],
 			ChangeType:     ChangeTypeEnumMap[uint64(changeType)],
@@ -153,18 +165,18 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := SessionRevokedEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subIdAttributes["sub_id"].(map[string]interface{}),
 			EventTimestamp: timestamp,
 		}
 		return &event, nil
 
 	case DeviceCompliance:
-		previousStatus, ok := subjectAttributes["previousStatus"].(string)
+		previousStatus, ok := eventAttributes["previousStatus"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse previous status")
 		}
 
-		currentStatus, ok := subjectAttributes["currentStatus"].(string)
+		currentStatus, ok := eventAttributes["currentStatus"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse current status")
 		}
@@ -172,7 +184,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := DeviceComplianceEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subIdAttributes["sub_id"].(map[string]interface{}),
 			EventTimestamp: timestamp,
 			PreviousStatus: previousStatus,
 			CurrentStatus:  currentStatus,
@@ -180,15 +192,15 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		return &event, nil
 
 	case AssuranceLevelChange:
-		previousLevel, _ := subjectAttributes["previousLevel"].(string)
-		changeDirection, _ := subjectAttributes["changeDirection"].(string)
+		previousLevel, _ := eventAttributes["previousLevel"].(string)
+		changeDirection, _ := eventAttributes["changeDirection"].(string)
 
-		currentLevel, ok := subjectAttributes["currentLevel"].(string)
+		currentLevel, ok := eventAttributes["currentLevel"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse current level")
 		}
 
-		namespace, ok := subjectAttributes["namespace"].(string)
+		namespace, ok := eventAttributes["namespace"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse namespace")
 		}
@@ -196,7 +208,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := AssuranceLevelChangeEvent{
 			Json:            claimsJson,
 			Format:          format,
-			Subject:         subjectAttributes["subject"].(map[string]interface{}),
+			Subject:         subIdAttributes["sub_id"].(map[string]interface{}),
 			EventTimestamp:  timestamp,
 			Namespace:       namespace,
 			PreviousLevel:   &previousLevel,
@@ -206,7 +218,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		return &event, nil
 
 	case TokenClaimsChange:
-		claims, ok := subjectAttributes["claims"].(map[string]interface{})
+		claims, ok := eventAttributes["claims"].(map[string]interface{})
 		if !ok {
 			return nil, errors.New("unable to parse claims")
 		}
@@ -214,7 +226,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 		event := TokenClaimsChangeEvent{
 			Json:           claimsJson,
 			Format:         format,
-			Subject:        subjectAttributes["subject"].(map[string]interface{}),
+			Subject:        subIdAttributes["sub_id"].(map[string]interface{}),
 			EventTimestamp: timestamp,
 			Claims:         claims,
 		}
