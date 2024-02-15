@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"github.com/MicahParks/keyfunc/v3"
+	"github.com/golang-jwt/jwt"
 	event "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
 )
 
@@ -147,4 +148,21 @@ type StreamConfig struct {
 	EventsRequested []string    `json:events_requested`
 	EventsDelivered []string    `json:events_delivered`
 	Delivery        SsfDelivery `json:"delivery"`
+}
+
+type SubId struct {
+	Format string `json:"format"`
+	Email  string `json:"email"`
+}
+
+type SETSessionRevoked struct {
+	SubID  SubId `json:"sub_id"`
+	Events struct {
+		Event struct {
+			EventTimestamp int64  `json:"event_timestamp"`
+			Reason         string `json:"reason"`
+		} `json:"https://schemas.openid.net/secevent/caep/event-type/session-revoked"`
+	} `json:"events"`
+
+	jwt.StandardClaims
 }
