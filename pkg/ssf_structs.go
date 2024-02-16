@@ -144,9 +144,9 @@ type StreamConfig struct {
 	StreamId        string      `json:"stream_id"`
 	Issuer          string      `json:"iss"`
 	Audience        string      `json:"aud"`
-	EventsSupported []string    `json:events_supported`
-	EventsRequested []string    `json:events_requested`
-	EventsDelivered []string    `json:events_delivered`
+	EventsSupported []string    `json:"events_supported"`
+	EventsRequested []string    `json:"events_requested"`
+	EventsDelivered []string    `json:"events_delivered"`
 	Delivery        SsfDelivery `json:"delivery"`
 }
 
