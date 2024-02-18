@@ -113,6 +113,13 @@ type PollTransmitterRequest struct {
 	ReturnImmediately bool     `json:"returnImmediately"`
 }
 
+// Struct to make subject changes to a stream
+type StreamSubjectRequest struct {
+	StreamID string `json:"stream_id,omitempty"`
+	Subject  SubId  `json:"subject,omitempty"`
+	Verified bool   `json:"verified,omitempty"`
+}
+
 // Struct to make a request to update the stream status
 type UpdateStreamRequest struct {
 	StreamId string `json:"stream_id"`
@@ -165,4 +172,7 @@ type SETSessionRevoked struct {
 	} `json:"events"`
 
 	jwt.StandardClaims
+}
+
+type EventSet struct {
 }
