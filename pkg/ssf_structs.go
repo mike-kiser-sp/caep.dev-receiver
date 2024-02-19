@@ -41,9 +41,16 @@ type SsfReceiverImplementation struct {
 	// receiver will make request to
 	transmitterUrl string
 
+	// transmitterTypeRfc determines whether this receiver is push or pull
+	TransmitterTypeRfc string
+
 	// transmitterPollUrl defines the url that the receiver
 	// should hit to receive SSF Events
 	transmitterPollUrl string
+
+	// receiverPushUrl defines the url that the receiver
+	// should hit to receive SSF Events
+	receiverPushUrl string
 
 	// TransmitterStreamUrl defines the URL that the receiver will use
 	// to update/get the stream status
@@ -155,6 +162,7 @@ type StreamConfig struct {
 	EventsRequested []string    `json:"events_requested"`
 	EventsDelivered []string    `json:"events_delivered"`
 	Delivery        SsfDelivery `json:"delivery"`
+	Description     string      `json:"description,omitempty"`
 }
 
 type SubId struct {
