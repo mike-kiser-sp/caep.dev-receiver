@@ -42,7 +42,7 @@ type SsfReceiverImplementation struct {
 	transmitterUrl string
 
 	// transmitterTypeRfc determines whether this receiver is push or pull
-	TransmitterTypeRfc string
+	transmitterTypeRfc string
 
 	// transmitterPollUrl defines the url that the receiver
 	// should hit to receive SSF Events
@@ -95,6 +95,8 @@ type TransmitterConfig struct {
 	DeliveryMethodsSupported []string                 `json:"delivery_methods_supported,omitempty"`
 	ConfigurationEndpoint    string                   `json:"configuration_endpoint,omitempty"`
 	StatusEndpoint           string                   `json:"status_endpoint,omitempty"`
+	AddSubjectEndpoint       string                   `json:"add_subject_endpoint,omitempty"`
+	RemoveSubjectEndpoint    string                   `json:"remove_subject_endpoint,omitempty"`
 	SpecVersion              string                   `json:"spec_version,omitempty"`
 	AuthorizationSchemes     []map[string]interface{} `json:"authorization_schemes,omitempty"`
 }
