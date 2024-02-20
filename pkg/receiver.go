@@ -5,22 +5,41 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog/v2"
+	"github.com/go-chi/jwtauth/v5"
+	"github.com/go-chi/render"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
 	"io"
-	"io/ioutil"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
-	events "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
-
 	keyfunc "github.com/MicahParks/keyfunc/v3"
 	"github.com/golang-jwt/jwt/v5"
+	events "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
 )
 
 const TransmitterConfigMetadataPath = "/.well-known/ssf-configuration"
 const TransmitterPollRFC = "urn:ietf:rfc:8936"
+const TransmitterPushRFC = "urn:ietf:rfc:8935"
+
+const protocol = "http"
+const hostName = "localhost"
+const addr = ":9425"
+const specVersion = "1_0-ID2"
+
+const pushEventsUrl = "/ssf/push"
+
+var tokenAuth *jwtauth.JWTAuth
+
+var mainReceiver SsfReceiverImplementation
 
 // Initializes the SSF Receiver based on the specified configuration.
 //
@@ -60,52 +79,97 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, err
 		return nil, err
 	}
 
-	println("####\n\n\n\nafter transmitter config")
 	if transmitterCfg.ConfigurationEndpoint == "" {
 		return nil, errors.New("Given transmitter doesn't specify the configuration endpoint")
 	}
-
-	var pollUrl = ""
-
-	if streamId != "" {
-		streamId, pollUrl, err = getStreamConfig(transmitterCfg.ConfigurationEndpoint, cfg, streamId)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		streamId, pollUrl, err = makeCreateStreamRequest(transmitterCfg.ConfigurationEndpoint, cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	println("#####\n\n\nafter stream create request")
-	// hack for duo
-	log.Println("*****************************************\n\n\n")
 
 	key, err := keyfunc.NewDefault([]string{transmitterCfg.JwksUri})
 	if err != nil {
 		log.Fatalf("Failed to create a keyfunc.Keyfunc from the server's URL.\nError: %s", err)
 	}
 
-	receiver := SsfReceiverImplementation{
-		transmitterUrl:       cfg.TransmitterUrl,
-		transmitterPollUrl:   pollUrl,
-		eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
-		authorizationToken:   cfg.AuthorizationToken,
-		transmitterStatusUrl: transmitterCfg.StatusEndpoint,
-		pollInterval:         300,
-		streamId:             streamId,
-		configurationUrl:     transmitterCfg.ConfigurationEndpoint,
-		transmitterJwks:      key,
-	}
-	if cfg.PollInterval != 0 {
-		receiver.pollInterval = cfg.PollInterval
-	}
+	var receiver SsfReceiverImplementation
 
-	if cfg.PollCallback != nil {
-		receiver.pollCallback = cfg.PollCallback
-		receiver.InitPollInterval()
+	if cfg.TransmitterTypeRfc == TransmitterPollRFC {
+		var pollUrl = ""
+
+		if streamId != "" {
+			streamId, pollUrl, err = getStreamConfig(transmitterCfg.ConfigurationEndpoint, cfg, streamId)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			streamId, pollUrl, err = makeCreateStreamRequest(transmitterCfg.ConfigurationEndpoint, cfg)
+			if err != nil {
+				return nil, err
+			}
+		}
+		receiver = SsfReceiverImplementation{
+			transmitterUrl:       cfg.TransmitterUrl,
+			transmitterPollUrl:   pollUrl,
+			eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
+			authorizationToken:   cfg.AuthorizationToken,
+			transmitterStatusUrl: transmitterCfg.StatusEndpoint,
+			pollInterval:         300,
+			streamId:             streamId,
+			configurationUrl:     transmitterCfg.ConfigurationEndpoint,
+			transmitterJwks:      key,
+		}
+		if cfg.PollInterval != 0 {
+			receiver.pollInterval = cfg.PollInterval
+		}
+
+		if cfg.PollCallback != nil {
+			receiver.pollCallback = cfg.PollCallback
+			receiver.InitPollInterval()
+		}
+		mainReceiver = receiver
+
+	} else {
+
+		var pushUrl = ""
+		if streamId != "" {
+			streamId, pushUrl, err = getStreamConfig(transmitterCfg.ConfigurationEndpoint, cfg, streamId)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+
+			// make a streamID (receiver side id)
+			Id, _ := uuid.NewRandom()
+			IdString := Id.String()
+			streamId := strings.Replace(IdString, "-", "", -1)
+
+			// make a receiver url also
+			cfg.TransmitterPushUrl = cfg.TransmitterPushUrl + "/" + streamId
+
+			streamId, pushUrl, err = makeCreateStreamRequest(transmitterCfg.ConfigurationEndpoint, cfg)
+			if err != nil {
+				return nil, err
+			}
+		}
+		receiver = SsfReceiverImplementation{
+			transmitterUrl:       cfg.TransmitterUrl,
+			receiverPushUrl:      pushUrl,
+			eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
+			authorizationToken:   cfg.AuthorizationToken,
+			transmitterStatusUrl: transmitterCfg.StatusEndpoint,
+			pollInterval:         300,
+			streamId:             streamId,
+			configurationUrl:     transmitterCfg.ConfigurationEndpoint,
+			transmitterJwks:      key,
+		}
+
+		if cfg.PollCallback != nil {
+			receiver.pollCallback = cfg.PollCallback
+		}
+
+		// need to start listening on the url
+		log.Println(receiver)
+		fmt.Printf("Starting server on %v\n", addr)
+		mainReceiver = receiver
+		http.ListenAndServe(addr, router())
+
 	}
 
 	return &receiver, nil
@@ -149,20 +213,7 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 	//add stream id to end of request
 	getStreamUrl := url + "?stream_id=" + streamId
 
-	log.Println("get config for stream URL: ", getStreamUrl)
-
-	delivery := SsfDelivery{DeliveryMethod: TransmitterPollRFC}
-	createStreamRequest := CreateStreamReq{
-		Delivery:        delivery,
-		EventsRequested: events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
-	}
-
-	requestBody, err := json.Marshal(createStreamRequest)
-	if err != nil {
-		return "", "", err
-	}
-
-	req, err := http.NewRequest("GET", getStreamUrl, bytes.NewBuffer(requestBody))
+	req, err := http.NewRequest("GET", getStreamUrl, nil)
 	if err != nil {
 		return "", "", err
 	}
@@ -170,17 +221,15 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 	req.Header.Set("Authorization", "Bearer "+cfg.AuthorizationToken)
 	req.Header.Set("Content-Type", "application/json")
 
-	log.Println("auth token: ", req.Header)
-
 	response, err := client.Do(req)
 	if err != nil {
-		log.Println("failed create of req")
+		log.Println("failed create of req to get config")
 		return "", "", err
 	}
 
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	type Stream struct {
 		StreamId string      `json:"stream_id"`
 		Iss      string      `json:"iss"`
@@ -209,19 +258,24 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, string, error) {
 	client := &http.Client{}
 
-	delivery := SsfDelivery{DeliveryMethod: TransmitterPollRFC}
+	var delivery SsfDelivery
+
+	if cfg.TransmitterTypeRfc == TransmitterPollRFC {
+		delivery = SsfDelivery{DeliveryMethod: cfg.TransmitterTypeRfc}
+	} else {
+		delivery = SsfDelivery{DeliveryMethod: cfg.TransmitterTypeRfc, EndpointUrl: cfg.TransmitterPushUrl}
+	}
+
 	createStreamRequest := CreateStreamReq{
 		Delivery:        delivery,
 		EventsRequested: events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
 	}
+	log.Println("input to create stream: ", createStreamRequest)
 
 	requestBody, err := json.Marshal(createStreamRequest)
 	if err != nil {
 		return "", "", err
 	}
-
-	log.Println("\n\n\nrequest header: ", string(requestBody), "\n\n\n")
-	log.Println("url to hit with post: ", url)
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -239,7 +293,7 @@ func makeCreateStreamRequest(url string, cfg ReceiverConfig) (string, string, er
 
 	defer response.Body.Close()
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 
 	println("response:", string(body))
 
@@ -339,13 +393,13 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 	}
 
 	//turn back on acks once testing is done
-	/*if len(ssfEventsSets.Sets) > 0 {
+
+	if len(ssfEventsSets.Sets) > 0 {
 		err = acknowledgeEvents(&ssfEventsSets.Sets, receiver)
 		if err != nil {
 			return []events.SsfEvent{}, nil
 		}
 	}
-	*/
 
 	events, err := parseSsfEventSets(&ssfEventsSets.Sets, receiver.transmitterJwks)
 	return events, err
@@ -521,7 +575,11 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 
 	for _, set := range *sets {
 		log.Println("\n\n\n\nnext set:   ", string(set))
+		log.Println("keyfunc: ***", k.Keyfunc, "****")
 		token, err := jwt.Parse(set, k.Keyfunc)
+		if err != nil {
+			log.Println(err)
+		}
 		log.Println(token.Claims)
 		iss, err2 := token.Claims.GetIssuer()
 		log.Println("iss:", iss)
@@ -563,4 +621,99 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 	}
 
 	return ssfEventsList, nil
+}
+
+func receiveEvent(w http.ResponseWriter, r *http.Request) {
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Println(err)
+	}
+	var event string
+	err = json.Unmarshal(body, &event)
+	if err != nil {
+		log.Println(err)
+	}
+
+	sets := map[string]string{
+		"event": event,
+	}
+
+	log.Println("main receiver: ", mainReceiver.transmitterJwks)
+	events, err := parseSsfEventSets(&sets, mainReceiver.transmitterJwks)
+	log.Println("after parse events")
+	log.Println(err)
+	mainReceiver.pollCallback(events)
+
+}
+
+func router() http.Handler {
+
+	err := godotenv.Load(".serverenv")
+	if err != nil {
+		log.Fatalf("Some error occured. Err: %s", err)
+	}
+
+	tokenAuth = jwtauth.New("HS256", []byte(os.Getenv("SECRET")), nil)
+	// Service
+	// Logger
+	logger := httplog.NewLogger("httplog-example", httplog.Options{
+		LogLevel: slog.LevelDebug,
+		// JSON:             true,
+		Concise: true,
+		// RequestHeaders:   true,
+		// ResponseHeaders:  true,
+		MessageFieldName: "message",
+		LevelFieldName:   "severity",
+		TimeFieldFormat:  time.RFC3339,
+		Tags: map[string]string{
+			"version": "v1.0-81aa4244d9fc8076a",
+			"env":     "dev",
+		},
+		QuietDownRoutes: []string{
+			"/",
+			"/ping",
+		},
+		QuietDownPeriod: 10 * time.Second,
+		// SourceFieldName: "source",
+	})
+	r := chi.NewRouter()
+	r.Use(httplog.RequestLogger(logger, []string{"/ping"}))
+	r.Use(middleware.Heartbeat("/ping"))
+	r.Use(render.SetContentType(render.ContentTypeJSON))
+
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
+
+	// Protected routes
+	r.Group(func(r chi.Router) {
+		// Seek, verify and validate JWT tokens
+		r.Use(jwtauth.Verifier(tokenAuth))
+
+		// Handle valid / invalid tokens. In this example, we use
+		// the provided authenticator middleware, but you can write your
+		// own very easily, look at the Authenticator method in jwtauth.go
+		// and tweak it, it's not scary.
+		r.Use(jwtauth.Authenticator(tokenAuth))
+
+		r.Get("/admin", func(w http.ResponseWriter, r *http.Request) {
+			_, claims, _ := jwtauth.FromContext(r.Context())
+			w.Write([]byte(fmt.Sprintf("protected area. hi %v", claims["user_id"])))
+		})
+		r.Route(pushEventsUrl, func(r chi.Router) {
+			r.Post("/{StreamID}", receiveEvent)
+		})
+
+	})
+
+	// Public routes
+	r.Group(func(r chi.Router) {
+
+	})
+
+	return r
 }
