@@ -178,6 +178,8 @@ type SETSessionRevoked struct {
 		Event struct {
 			EventTimestamp int64  `json:"event_timestamp"`
 			Reason         string `json:"reason,omitempty"`
+			ReasonAdmin    string `json:"reason_admin,omitempty"`
+			ReasonUser     string `json:"reason_user,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/session-revoked"`
 	} `json:"events"`
 
@@ -192,6 +194,8 @@ type SETCredentialChange struct {
 			Reason         string `json:"reason,omitempty"`
 			CredentialType string `json:"credential_type"`
 			ChangeType     string `json:"change_type"`
+			ReasonAdmin    string `json:"reason_admin,omitempty"`
+			ReasonUser     string `json:"reason_user,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/credential-change"`
 	} `json:"events"`
 
