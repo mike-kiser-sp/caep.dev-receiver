@@ -10,6 +10,12 @@ type ReceiverConfig struct {
 	// Required
 	TransmitterUrl string
 
+	// TransmitterTypeRfc defines whether this receiver is push or pull
+	//
+	//
+	// Required
+	TransmitterTypeRfc string
+
 	// TransmitterPollUrl defines the URL that the receiver will use
 	// to poll for SSF events.
 	//
@@ -17,6 +23,14 @@ type ReceiverConfig struct {
 	//
 	// Required
 	TransmitterPollUrl string
+
+	// TransmitterPushUrl defines the URL that the receiver will use
+	// to received push events
+	//
+	// Note - Must be a subpath of TransmitterUrl
+	//
+	// Required
+	TransmitterPushUrl string
 
 	// TransmitterStreamUrl defines the URL that the receiver will use
 	// to update/get the stream status.
