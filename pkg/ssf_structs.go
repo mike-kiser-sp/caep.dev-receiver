@@ -177,8 +177,22 @@ type SETSessionRevoked struct {
 	Events struct {
 		Event struct {
 			EventTimestamp int64  `json:"event_timestamp"`
-			Reason         string `json:"reason"`
+			Reason         string `json:"reason,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/session-revoked"`
+	} `json:"events"`
+
+	jwt.StandardClaims
+}
+
+type SETCredentialChange struct {
+	SubID  SubId `json:"sub_id"`
+	Events struct {
+		Event struct {
+			EventTimestamp int64  `json:"event_timestamp"`
+			Reason         string `json:"reason,omitempty"`
+			CredentialType string `json:"credential_type"`
+			ChangeType     string `json:"change_type"`
+		} `json:"https://schemas.openid.net/secevent/caep/event-type/credential-change"`
 	} `json:"events"`
 
 	jwt.StandardClaims
