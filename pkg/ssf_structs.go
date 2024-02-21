@@ -174,7 +174,7 @@ type SubId struct {
 
 
 type Subject struct {
-	type User struct {
+	User struct {
 		Format string `json:"format"`
 		Email  string `json:"email"`
 	}`json:"user"`
