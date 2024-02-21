@@ -172,6 +172,14 @@ type SubId struct {
 	Email  string `json:"email"`
 }
 
+
+type Subject struct {
+	type User struct {
+		Format string `json:"format"`
+		Email  string `json:"email"`
+	}`json:"user"`
+}
+
 type SETSessionRevoked struct {
 	SubID  SubId `json:"sub_id"`
 	Events struct {
@@ -180,6 +188,7 @@ type SETSessionRevoked struct {
 			Reason         string `json:"reason,omitempty"`
 			ReasonAdmin    string `json:"reason_admin,omitempty"`
 			ReasonUser     string `json:"reason_user,omitempty"`
+			Subject        Subject `json:"subject,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/session-revoked"`
 	} `json:"events"`
 
@@ -196,6 +205,7 @@ type SETCredentialChange struct {
 			ChangeType     string `json:"change_type"`
 			ReasonAdmin    string `json:"reason_admin,omitempty"`
 			ReasonUser     string `json:"reason_user,omitempty"`
+			Subject        Subject `json:"subject,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/credential-change"`
 	} `json:"events"`
 
