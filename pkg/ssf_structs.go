@@ -172,12 +172,13 @@ type SubId struct {
 	Email  string `json:"email"`
 }
 
+type User struct {
+	Format string `json:"format"`
+	Email  string `json:"email"`
+}
 
 type Subject struct {
-	User struct {
-		Format string `json:"format"`
-		Email  string `json:"email"`
-	}`json:"user"`
+	User User `json:"user,omitempty"`
 }
 
 type SETSessionRevoked struct {
