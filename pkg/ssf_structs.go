@@ -181,14 +181,19 @@ type Subject struct {
 	User User `json:"user,omitempty"`
 }
 
+
+type Reason struct {
+	English string `json:"en,omitempty"`
+}
+
 type SETSessionRevoked struct {
 	SubID  SubId `json:"sub_id"`
 	Events struct {
 		Event struct {
-			EventTimestamp int64  `json:"event_timestamp"`
-			Reason         string `json:"reason,omitempty"`
-			ReasonAdmin    string `json:"reason_admin,omitempty"`
-			ReasonUser     string `json:"reason_user,omitempty"`
+			EventTimestamp int64   `json:"event_timestamp"`
+			Reason         string  `json:"reason,omitempty"`
+			ReasonAdmin    Reason  `json:"reason_admin,omitempty"`
+			ReasonUser     Reason  `json:"reason_user,omitempty"`
 			Subject        Subject `json:"subject,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/session-revoked"`
 	} `json:"events"`
@@ -200,12 +205,12 @@ type SETCredentialChange struct {
 	SubID  SubId `json:"sub_id"`
 	Events struct {
 		Event struct {
-			EventTimestamp int64  `json:"event_timestamp"`
-			Reason         string `json:"reason,omitempty"`
-			CredentialType string `json:"credential_type"`
-			ChangeType     string `json:"change_type"`
-			ReasonAdmin    string `json:"reason_admin,omitempty"`
-			ReasonUser     string `json:"reason_user,omitempty"`
+			EventTimestamp int64   `json:"event_timestamp"`
+			Reason         string  `json:"reason,omitempty"`
+			CredentialType string  `json:"credential_type"`
+			ChangeType     string  `json:"change_type"`
+			ReasonAdmin    Reason  `json:"reason_admin,omitempty"`
+			ReasonUser     Reason  `json:"reason_user,omitempty"`
 			Subject        Subject `json:"subject,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/credential-change"`
 	} `json:"events"`
