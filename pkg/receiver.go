@@ -704,15 +704,15 @@ func router() http.Handler {
 			_, claims, _ := jwtauth.FromContext(r.Context())
 			w.Write([]byte(fmt.Sprintf("protected area. hi %v", claims["user_id"])))
 		})
-		r.Route(pushEventsUrl, func(r chi.Router) {
-			r.Post("/{StreamID}", receiveEvent)
-		})
+
 
 	})
 
 	// Public routes
 	r.Group(func(r chi.Router) {
-
+		r.Route(pushEventsUrl, func(r chi.Router) {
+			r.Post("/{StreamID}", receiveEvent)
+		})
 	})
 
 	return r
