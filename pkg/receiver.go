@@ -586,7 +586,8 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 		if err2 == nil {
 		}
 		if (err != nil) && (!strings.Contains(iss, "caep.dev") || (!strings.Contains(iss, "sgnl.ai"))) {
-			log.Fatalf("Failed to parse the JWT.\nError: %s", err)
+			log.Println(err)
+			//log.Fatalf("Failed to parse the JWT.\nError: %s", err)
 		}
 
 		/*		token, err := jwt.Parse(set, func(token *jwt.Token) (interface{}, error) { return jwt.UnsafeAllowNoneSignatureType, nil })
