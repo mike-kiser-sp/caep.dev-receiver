@@ -631,10 +631,13 @@ func receiveEvent(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	var event string
+	event = string(body)
+	/*
 	err = json.Unmarshal(body, &event)
 	if err != nil {
 		log.Println(err)
 	}
+ */
 
 	sets := map[string]string{
 		"event": event,
