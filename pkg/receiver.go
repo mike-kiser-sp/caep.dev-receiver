@@ -585,7 +585,7 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 		log.Println("iss:", iss)
 		if err2 == nil {
 		}
-		if (err != nil) && (!strings.Contains(iss, "caep.dev")) {
+		if (err != nil) && (!strings.Contains(iss, "caep.dev") || (!strings.Contains(iss, "sgnl.ai"))) {
 			log.Fatalf("Failed to parse the JWT.\nError: %s", err)
 		}
 
@@ -704,7 +704,6 @@ func router() http.Handler {
 			_, claims, _ := jwtauth.FromContext(r.Context())
 			w.Write([]byte(fmt.Sprintf("protected area. hi %v", claims["user_id"])))
 		})
-
 
 	})
 
