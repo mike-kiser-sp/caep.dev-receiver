@@ -30,6 +30,8 @@ const TransmitterConfigMetadataPath = "/.well-known/ssf-configuration"
 const TransmitterPollRFC = "urn:ietf:rfc:8936"
 const TransmitterPushRFC = "urn:ietf:rfc:8935"
 
+
+
 const protocol = "http"
 const hostName = "localhost"
 const addr = ":9425"
@@ -354,7 +356,7 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 		return []events.SsfEvent{}, err
 	}
 
-	log.Println("***************\n\n", string(requestBody), "\n*********\n\n")
+	//	log.Println("***************\n\n", string(requestBody), "\n*********\n\n")
 
 	req, err := http.NewRequest("POST", receiver.transmitterPollUrl, bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -376,7 +378,7 @@ func (receiver *SsfReceiverImplementation) PollEvents() ([]events.SsfEvent, erro
 		return []events.SsfEvent{}, err
 	}
 
-	log.Println("***************\n\n", body, "\n*********\n\n")
+	//log.Println("***************\n\n", body, "\n*********\n\n")
 
 	if response.StatusCode != 200 && response.StatusCode != 202 {
 		return []events.SsfEvent{}, err
@@ -571,21 +573,32 @@ func acknowledgeEvents(sets *map[string]string, receiver *SsfReceiverImplementat
 func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.SsfEvent, error) {
 	var ssfEventsList []events.SsfEvent
 
-	log.Println("in parse events")
+	//log.Println("Parsing Event")
 
 	for _, set := range *sets {
-		log.Println("\n\n\n\nnext set:   ", string(set))
-		log.Println("keyfunc: ***", k.Keyfunc, "****")
+		///log.Println("\n\n\n\nnext set:   ", string(set))
+		//log.Println("keyfunc: ***", k.Keyfunc, "****")
 		token, err := jwt.Parse(set, k.Keyfunc)
 		if err != nil {
 			log.Println(err)
 		}
-		log.Println(token.Claims)
+		//log.Println(token.Claims)
+		//fmt.Printf("%+v", token.Claims)
+		bytes, _ := json.MarshalIndent(token.Claims, "", "\t")
+		log.Println("---New Incoming Event ----")
+		log.Println(set)
+		log.Println("---Start Event ----")
+		log.Println(string(bytes))
+		log.Println("-----End Event----")
+
 		iss, err2 := token.Claims.GetIssuer()
-		log.Println("iss:", iss)
-		if err2 == nil {
+		//log.Println("iss:", iss)
+		if err2 != nil {
 		}
-		if (err != nil) && (!strings.Contains(iss, "caep.dev") || (!strings.Contains(iss, "sgnl.ai"))) {
+
+		// now that we have the issuer, go get the jwks
+
+		if (err != nil) && (!strings.Contains(iss, "caep.dev") && (!strings.Contains(iss, "sgnl.ai"))) {
 			log.Println(err)
 			//log.Fatalf("Failed to parse the JWT.\nError: %s", err)
 		}
@@ -605,17 +618,18 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 
 		eventSubject := make(map[string]interface{})
 		eventSubject["sub_id"] = claims["sub_id"]
-		log.Println("subject is: ", eventSubject)
+		//log.Println("subject is: ", eventSubject)
 		ssfEvents := claims["events"].(map[string]interface{})
-		log.Println("ORIGINAL running list: ", ssfEvents)
+		//log.Println("ORIGINAL running list: ", ssfEvents)
 		for eventType, eventDetails := range ssfEvents {
-			log.Println("eventType:", eventType, "       eventSubject:", eventSubject)
+			//log.Println("eventType:", eventType, "       eventSubject:", eventSubject)
 			ssfEvent, err := events.EventStructFromEvent(eventType, eventSubject, eventDetails, claims)
 			if err != nil {
 				log.Println("error", err)
 			}
-			log.Println("running list: ", ssfEvents)
-			log.Println("new Event: ", ssfEvent)
+			//log.Println("running list: ", ssfEvents)
+			//fmt.Printf("%+v\n", ssfEvent)
+			//log.Println("new Event: ", ssfEvent)
 			ssfEventsList = append(ssfEventsList, ssfEvent)
 		}
 
@@ -632,20 +646,14 @@ func receiveEvent(w http.ResponseWriter, r *http.Request) {
 	}
 	var event string
 	event = string(body)
-	/*
-	err = json.Unmarshal(body, &event)
-	if err != nil {
-		log.Println(err)
-	}
- */
 
 	sets := map[string]string{
 		"event": event,
 	}
 
-	log.Println("main receiver: ", mainReceiver.transmitterJwks)
+	//log.Println("New event received: ")
 	events, err := parseSsfEventSets(&sets, mainReceiver.transmitterJwks)
-	log.Println("after parse events")
+	//log.Println("after parse events")
 	log.Println(err)
 	mainReceiver.pollCallback(events)
 
