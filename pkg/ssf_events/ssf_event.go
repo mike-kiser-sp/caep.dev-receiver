@@ -3,7 +3,6 @@ package ssf_events
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -89,7 +88,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, eventDetail
 	eventAttributes, ok := eventDetails.(map[string]interface{})
 	subIdAttributes, ok := eventSubject.(map[string]interface{})
 
-	log.Println("instide construct event")
+	//log.Println("instide construct event")
 	// Special Event Types
 	if eventEnum == VerificationEventType {
 		state, ok := eventAttributes["state"].(string)
@@ -118,8 +117,8 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, eventDetail
 		}
 		return &event, nil
 	}
-	log.Println("after event switch ")
-	log.Println("subjAttrs: ", eventAttributes)
+	///log.Println("after event switch ")
+	//log.Println("subjAttrs: ", eventAttributes)
 	// caep dev treats this as a string, others should see it as an int
 	//	timestamp, err := strconv.ParseInt(eventAttributes["event_timestamp"].(float64), 10, 64)
 	timestamp := time.Now().Unix()
@@ -130,13 +129,13 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, eventDetail
 	if !ok {
 		return nil, errors.New("unable to parse event subject")
 	}
-	log.Println("before get subj format")
-	log.Println(subIdAttributes["sub_id"])
+	//log.Println("before get subj format")
+	//log.Println(subIdAttributes["sub_id"])
 	format, err := GetSubjectFormat(subIdAttributes["sub_id"].(map[string]interface{}))
 	if err != nil {
 		return nil, err
 	}
-	log.Println("after get subj format")
+	//log.Println("after get subj format")
 
 	// Add more Ssf Events as desired
 	switch eventEnum {
