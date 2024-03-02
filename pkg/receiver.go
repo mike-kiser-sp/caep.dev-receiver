@@ -578,8 +578,9 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 	for _, set := range *sets {
 		///log.Println("\n\n\n\nnext set:   ", string(set))
 		//log.Println("keyfunc: ***", k.Keyfunc, "****")
+		var isValidationOn = false
 		token, err := jwt.Parse(set, k.Keyfunc)
-		if err != nil {
+		if err != nil && isValidationOn {
 			log.Println(err)
 		}
 		//log.Println(token.Claims)
