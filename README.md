@@ -25,7 +25,17 @@ import {
   	EventsRequested:    []events.EventType{0},
   	AuthorizationToken: "<your access token here>",
   	PollCallback:       nil, // no polling
+    // push vs poll 
+    TransmitterTypeRfc: pkg.TransmitterPollRFC,
+ 
+		// TransmitterTypeRfc: pkg.TransmitterPushRFC,
+    // if push (see above), then specify push url . . 
+    // TransmitterPushUrl: "https://shared-signals.dev/ssf/push",
+    // if poll (see above), specify the Poll Call Back Method
+		PollCallback: printEvents,
+		PollInterval: 20,
   }
+
   // Initialize the receiver but do not start polling
   receiver, err := pkg.ConfigureSsfReceiver(receiverConfig)
   if err != nil {
