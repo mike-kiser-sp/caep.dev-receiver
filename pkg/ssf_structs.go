@@ -95,7 +95,9 @@ type TransmitterConfig struct {
 	DeliveryMethodsSupported []string                 `json:"delivery_methods_supported,omitempty"`
 	ConfigurationEndpoint    string                   `json:"configuration_endpoint,omitempty"`
 	StatusEndpoint           string                   `json:"status_endpoint,omitempty"`
+	VerificationEndpoint     string                   `json:"verification_endpoint,omitempty"`
 	AddSubjectEndpoint       string                   `json:"add_subject_endpoint,omitempty"`
+	DeleteStreamEndpoint     string                   `json:"delete_stream_endpoint,omitempty"`
 	RemoveSubjectEndpoint    string                   `json:"remove_subject_endpoint,omitempty"`
 	SpecVersion              string                   `json:"spec_version,omitempty"`
 	AuthorizationSchemes     []map[string]interface{} `json:"authorization_schemes,omitempty"`
@@ -127,6 +129,12 @@ type StreamSubjectRequest struct {
 	StreamID string `json:"stream_id,omitempty"`
 	Subject  SubId  `json:"subject,omitempty"`
 	Verified bool   `json:"verified,omitempty"`
+}
+
+// Struct to make verification event request
+type VerificationRequest struct {
+	StreamID string `json:"stream_id,omitempty"`
+	State    string `json:"state,omitempty"`
 }
 
 // Struct to make a request to update the stream status
@@ -169,7 +177,8 @@ type StreamConfig struct {
 
 type SubId struct {
 	Format string `json:"format"`
-	Email  string `json:"email"`
+	Email  string `json:"email,omitempty"`
+	Id     string `json:"id",omitempty"`
 }
 
 type User struct {
@@ -180,7 +189,6 @@ type User struct {
 type Subject struct {
 	User User `json:"user,omitempty"`
 }
-
 
 type Reason struct {
 	English string `json:"en,omitempty"`
@@ -213,6 +221,18 @@ type SETCredentialChange struct {
 			ReasonUser     Reason  `json:"reason_user,omitempty"`
 			Subject        Subject `json:"subject,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/caep/event-type/credential-change"`
+	} `json:"events"`
+
+	jwt.StandardClaims
+}
+
+type SETVerification struct {
+	SubID  SubId `json:"sub_id"`
+	Events struct {
+		Event struct {
+			EventTimestamp int64  `json:"event_timestamp"`
+			State          string `json:"state,omitempty"`
+		} `json:"https://schemas.openid.net/secevent/ssf/event-type/verification"`
 	} `json:"events"`
 
 	jwt.StandardClaims
