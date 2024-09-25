@@ -42,3 +42,5 @@ examples/Interop/transmitter/TRANSMITTER
 examples/Interop/transmitter/transmitter.go
 examples/Interop/transmitter/transmitter.iml
 examples/Interop/transmitter/trusted
+go.sum
+go.mod
