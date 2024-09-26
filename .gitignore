@@ -44,3 +44,6 @@ examples/Interop/transmitter/transmitter.iml
 examples/Interop/transmitter/trusted
 go.sum
 go.mod
+examples/Interop/transmitter/ssf.db.old
+examples/Interop/transmitter9_25_1.zip
+.gitignore

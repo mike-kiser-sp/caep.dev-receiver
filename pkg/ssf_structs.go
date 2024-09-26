@@ -164,6 +164,12 @@ var EnumToStringStatusMap = map[StreamStatus]string{
 	StreamDisabled: "disabled",
 }
 
+type StreamStatusResponse struct {
+	StreamId string `json:"stream_id"`
+	Status   string `json:"status"`
+	Reason   string `json:"reason"`
+}
+
 type StreamConfig struct {
 	StreamId        string      `json:"stream_id"`
 	Issuer          string      `json:"iss"`
