@@ -68,7 +68,11 @@ var EventUri = map[EventType]string{
 	DeviceCompliance:       "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
 	AssuranceLevelChange:   "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
 	TokenClaimsChange:      "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
+<<<<<<< HEAD
 	VerificationEventType:  "https://schemas.openid.net/secevent/ssf/event-type/verification",
+=======
+	VerificationEventType:  "https://schemas.openid.net/secevent/ssf/event-type/verification-event",
+>>>>>>> 580cbd6 (Update ssf_event.go to comply with naming convention)
 	StreamUpdatedEventType: "https://schemas.openid.net/secevent/ssf/event-type/stream-updated",
 }
 
@@ -78,8 +82,13 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
 	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
+<<<<<<< HEAD
 	"https://schemas.openid.net/secevent/ssf/event-type/verification":              VerificationEventType,
 	"https://schemas.openid.net/secevent/ssf/event-type/stream-updated":            StreamUpdatedEventType,
+=======
+	"https://schemas.openid.net/secevent/ssf/event-type/verification-event":       VerificationEventType,
+	"https://schemas.openid.net/secevent/ssf/event-type/stream-updated":           StreamUpdatedEventType,
+>>>>>>> 580cbd6 (Update ssf_event.go to comply with naming convention)
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
