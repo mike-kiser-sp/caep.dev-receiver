@@ -78,8 +78,8 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
 	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
-	"https://schemas.openid.net/secevent/caep/event-type/verification-event":       VerificationEventType,
-	"https://schemas.openid.net/secevent/caep/event-type/stream-updated":           StreamUpdatedEventType,
+	"https://schemas.openid.net/secevent/ssf/event-type/verification":     		VerificationEventType,
+	"https://schemas.openid.net/secevent/ssf/event-type/stream-updated":            StreamUpdatedEventType,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
