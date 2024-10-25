@@ -68,8 +68,8 @@ var EventUri = map[EventType]string{
 	DeviceCompliance:       "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
 	AssuranceLevelChange:   "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
 	TokenClaimsChange:      "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
-	VerificationEventType:  "https://schemas.openid.net/secevent/caep/event-type/verification-event",
-	StreamUpdatedEventType: "https://schemas.openid.net/secevent/caep/event-type/stream-updated",
+	VerificationEventType:  "https://schemas.openid.net/secevent/ssf/event-type/verification",
+	StreamUpdatedEventType: "https://schemas.openid.net/secevent/ssf/event-type/stream-updated",
 }
 
 var EventEnum = map[string]EventType{
@@ -78,8 +78,8 @@ var EventEnum = map[string]EventType{
 	"https://schemas.openid.net/secevent/caep/event-type/device-compliance-change": DeviceCompliance,
 	"https://schemas.openid.net/secevent/caep/event-type/assurance-level-change":   AssuranceLevelChange,
 	"https://schemas.openid.net/secevent/caep/event-type/token-claims-change":      TokenClaimsChange,
-	"https://schemas.openid.net/secevent/caep/event-type/verification-event":       VerificationEventType,
-	"https://schemas.openid.net/secevent/caep/event-type/stream-updated":           StreamUpdatedEventType,
+	"https://schemas.openid.net/secevent/ssf/event-type/verification":              VerificationEventType,
+	"https://schemas.openid.net/secevent/ssf/event-type/stream-updated":            StreamUpdatedEventType,
 }
 
 // Takes an event subject from the JSON of an SSF Event, and converts it into the matching struct for that event
@@ -88,7 +88,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, eventDetail
 	eventAttributes, ok := eventDetails.(map[string]interface{})
 	subIdAttributes, ok := eventSubject.(map[string]interface{})
 
-	//log.Println("instide construct event")
+	//	log.Println("event attrs : ", eventAttributes)
 	// Special Event Types
 	if eventEnum == VerificationEventType {
 		state, ok := eventAttributes["state"].(string)
@@ -103,7 +103,7 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, eventDetail
 		return &event, nil
 
 	} else if eventEnum == StreamUpdatedEventType {
-		status, ok := eventAttributes["status"].(string)
+		status, ok := subIdAttributes["status"].(string)
 		if !ok {
 			return nil, errors.New("unable to parse state")
 		}

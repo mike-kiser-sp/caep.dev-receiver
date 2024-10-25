@@ -21,6 +21,9 @@ type SsfReceiver interface {
 	// Get stream status from the transmitter
 	GetStreamStatus() (StreamStatus, error)
 
+	// Get stream status from the transmitter
+	RequestVerificationEvent() error
+
 	// Enable the stream
 	EnableStream() (StreamStatus, error)
 
@@ -55,6 +58,10 @@ type SsfReceiverImplementation struct {
 	// TransmitterStreamUrl defines the URL that the receiver will use
 	// to update/get the stream status
 	transmitterStatusUrl string
+
+	// VerificationUrl defines the URL that the receiver will use
+	// to request a verification event
+	transmitterVerificationUrl string
 
 	// eventsRequested contains a list of the SSF Event URI's requested
 	// by the receiver
@@ -143,6 +150,8 @@ type UpdateStreamRequest struct {
 	Status   string `json:"status"`
 	Reason   string `json:"reason"`
 }
+
+type StreamVerificationState string
 
 type StreamStatus int
 

@@ -16,7 +16,7 @@ type StreamUpdatedEvent struct {
 }
 
 func (event *StreamUpdatedEvent) GetEventUri() string {
-	return "https://schemas.openid.net/secevent/caep/event-type/stream-updated"
+	return "https://schemas.openid.net/secevent/ssf/event-type/stream-updated"
 }
 
 func (event *StreamUpdatedEvent) GetSubjectFormat() SubjectFormat {

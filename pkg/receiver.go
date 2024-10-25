@@ -5,13 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/go-chi/httplog/v2"
-	"github.com/go-chi/jwtauth/v5"
-	"github.com/go-chi/render"
-	"github.com/google/uuid"
-	"github.com/joho/godotenv"
 	"io"
 	"log"
 	"log/slog"
@@ -21,16 +14,23 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httplog/v2"
+	"github.com/go-chi/jwtauth/v5"
+	"github.com/go-chi/render"
+	"github.com/google/uuid"
+	"github.com/joho/godotenv"
+
 	keyfunc "github.com/MicahParks/keyfunc/v3"
 	"github.com/golang-jwt/jwt/v5"
+
 	events "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
 )
 
 const TransmitterConfigMetadataPath = "/.well-known/ssf-configuration"
 const TransmitterPollRFC = "urn:ietf:rfc:8936"
 const TransmitterPushRFC = "urn:ietf:rfc:8935"
-
-
 
 const protocol = "http"
 const hostName = "localhost"
@@ -107,15 +107,16 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, err
 			}
 		}
 		receiver = SsfReceiverImplementation{
-			transmitterUrl:       cfg.TransmitterUrl,
-			transmitterPollUrl:   pollUrl,
-			eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
-			authorizationToken:   cfg.AuthorizationToken,
-			transmitterStatusUrl: transmitterCfg.StatusEndpoint,
-			pollInterval:         300,
-			streamId:             streamId,
-			configurationUrl:     transmitterCfg.ConfigurationEndpoint,
-			transmitterJwks:      key,
+			transmitterUrl:             cfg.TransmitterUrl,
+			transmitterPollUrl:         pollUrl,
+			eventsRequested:            events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
+			authorizationToken:         cfg.AuthorizationToken,
+			transmitterStatusUrl:       transmitterCfg.StatusEndpoint,
+			transmitterVerificationUrl: transmitterCfg.VerificationEndpoint,
+			pollInterval:               300,
+			streamId:                   streamId,
+			configurationUrl:           transmitterCfg.ConfigurationEndpoint,
+			transmitterJwks:            key,
 		}
 		if cfg.PollInterval != 0 {
 			receiver.pollInterval = cfg.PollInterval
@@ -457,6 +458,60 @@ func (receiver *SsfReceiverImplementation) PrintStream() {
 	print("\n\n**************\n")
 }
 
+func (receiver *SsfReceiverImplementation) RequestVerificationEvent() error {
+	if receiver.transmitterVerificationUrl == "" {
+		return errors.New("configured receiver does not have transmitter verification url")
+	}
+
+	return receiver.sendRequestVerificationRequest()
+}
+
+func (receiver *SsfReceiverImplementation) sendRequestVerificationRequest() error {
+	client := &http.Client{}
+
+	// make a streamID (receiver side id)
+	State, _ := uuid.NewRandom()
+	StateString := State.String()
+	state := strings.Replace(StateString, "-", "", -1)
+
+	verificationRequest := VerificationRequest{StreamID: receiver.streamId, State: state}
+	requestBody, err := json.Marshal(verificationRequest)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", receiver.transmitterVerificationUrl, bytes.NewBuffer(requestBody))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+receiver.authorizationToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	response, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	type StatusResponse struct {
+		Status string `json:"status"`
+		Reason string `json:"reason,omitempty"`
+	}
+
+	var statusResponse StatusResponse
+	err = json.Unmarshal(body, &statusResponse)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (receiver *SsfReceiverImplementation) sendStatusUpdateRequest(streamStatus StreamStatus) (StreamStatus, error) {
 	client := &http.Client{}
 	updateStreamRequest := UpdateStreamRequest{StreamId: receiver.streamId, Status: EnumToStringStatusMap[streamStatus]}
@@ -584,7 +639,7 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 			log.Println(err)
 		}
 		//log.Println(token.Claims)
-		//fmt.Printf("%+v", token.Claims)
+		fmt.Printf("%+v", token.Claims)
 		bytes, _ := json.MarshalIndent(token.Claims, "", "\t")
 		log.Println("---New Incoming Event ----")
 		log.Println(set)
@@ -623,14 +678,14 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 		ssfEvents := claims["events"].(map[string]interface{})
 		//log.Println("ORIGINAL running list: ", ssfEvents)
 		for eventType, eventDetails := range ssfEvents {
-			//log.Println("eventType:", eventType, "       eventSubject:", eventSubject)
+			log.Println("eventType:", eventType, "       eventSubject:", eventSubject)
 			ssfEvent, err := events.EventStructFromEvent(eventType, eventSubject, eventDetails, claims)
 			if err != nil {
 				log.Println("error", err)
 			}
 			//log.Println("running list: ", ssfEvents)
 			//fmt.Printf("%+v\n", ssfEvent)
-			//log.Println("new Event: ", ssfEvent)
+			log.Println("new Event: ", ssfEvent)
 			ssfEventsList = append(ssfEventsList, ssfEvent)
 		}
 
@@ -645,14 +700,21 @@ func receiveEvent(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Println(err)
 	}
-	var event string
-	event = string(body)
+
+	log.Println("body first", r.Body)
+	log.Println("original body: ", body)
+
+	var event = string(body[1:])
 
 	sets := map[string]string{
 		"event": event,
 	}
 
-	//log.Println("New event received: ")
+	log.Println("New event received: ")
+
+	log.Println("End New event received: ")
+
+	//events, err := parseSsfEventSets(&ssfEventsSets.Sets, mainReceiver.transmitterJwks)
 	events, err := parseSsfEventSets(&sets, mainReceiver.transmitterJwks)
 	//log.Println("after parse events")
 	log.Println(err)
