@@ -68,11 +68,7 @@ var EventUri = map[EventType]string{
 	DeviceCompliance:       "https://schemas.openid.net/secevent/caep/event-type/device-compliance-change",
 	AssuranceLevelChange:   "https://schemas.openid.net/secevent/caep/event-type/assurance-level-change",
 	TokenClaimsChange:      "https://schemas.openid.net/secevent/caep/event-type/token-claims-change",
-<<<<<<< HEAD
 	VerificationEventType:  "https://schemas.openid.net/secevent/ssf/event-type/verification",
-=======
-	VerificationEventType:  "https://schemas.openid.net/secevent/ssf/event-type/verification-event",
->>>>>>> 580cbd6 (Update ssf_event.go to comply with naming convention)
 	StreamUpdatedEventType: "https://schemas.openid.net/secevent/ssf/event-type/stream-updated",
 }
 
