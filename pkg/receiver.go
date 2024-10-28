@@ -9,7 +9,6 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -52,31 +51,8 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, err
 		return nil, errors.New("Receiver Config - missing required field")
 	}
 
-	transmitterUrl, err := url.Parse(cfg.TransmitterUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	baseUrl := transmitterUrl.Host
-	trailingPath := transmitterUrl.Path
-
-	log.Println(baseUrl)
-	log.Println(trailingPath)
-	log.Println(TransmitterConfigMetadataPath)
-
-	transmitterConfigEndpoint := ""
-	if strings.Contains(baseUrl, "localhost") {
-		transmitterConfigEndpoint = "http://" + baseUrl
-	} else {
-		transmitterConfigEndpoint = "https://" + baseUrl
-	}
-	if trailingPath != "/" {
-		transmitterConfigEndpoint += trailingPath + TransmitterConfigMetadataPath
-	} else {
-		transmitterConfigEndpoint += TransmitterConfigMetadataPath
-	}
-	log.Println("url:", transmitterConfigEndpoint)
-	transmitterCfg, err := makeTransmitterConfigRequest(transmitterConfigEndpoint)
+	log.Println("url:", cfg.TransmitterUrl)
+	transmitterCfg, err := makeTransmitterConfigRequest(cfg.TransmitterUrl)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +110,7 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, err
 		if streamId != "" {
 			streamId, pushUrl, err = getStreamConfig(transmitterCfg.ConfigurationEndpoint, cfg, streamId)
 			if err != nil {
+				log.Println("\n\n\n couldn't get streamconfig!")
 				return nil, err
 			}
 		} else {
@@ -148,30 +125,34 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, err
 
 			streamId, pushUrl, err = makeCreateStreamRequest(transmitterCfg.ConfigurationEndpoint, cfg)
 			if err != nil {
+				log.Println("\n\n\n couldn't make stream request!")
 				return nil, err
 			}
 		}
 		receiver = SsfReceiverImplementation{
-			transmitterUrl:       cfg.TransmitterUrl,
-			receiverPushUrl:      pushUrl,
-			eventsRequested:      events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
-			authorizationToken:   cfg.AuthorizationToken,
-			transmitterStatusUrl: transmitterCfg.StatusEndpoint,
-			pollInterval:         300,
-			streamId:             streamId,
-			configurationUrl:     transmitterCfg.ConfigurationEndpoint,
-			transmitterJwks:      key,
+			transmitterUrl:             cfg.TransmitterUrl,
+			receiverPushUrl:            pushUrl,
+			eventsRequested:            events.EventTypeArrayToEventUriArray(cfg.EventsRequested),
+			authorizationToken:         cfg.AuthorizationToken,
+			transmitterStatusUrl:       transmitterCfg.StatusEndpoint,
+			pollInterval:               300,
+			streamId:                   streamId,
+			transmitterVerificationUrl: transmitterCfg.VerificationEndpoint,
+			configurationUrl:           transmitterCfg.ConfigurationEndpoint,
+			transmitterJwks:            key,
 		}
 
 		if cfg.PollCallback != nil {
 			receiver.pollCallback = cfg.PollCallback
 		}
 
+		//go testTransmitter(&receiver)
+
 		// need to start listening on the url
 		log.Println(receiver)
 		fmt.Printf("Starting server on %v\n", addr)
 		mainReceiver = receiver
-		http.ListenAndServe(addr, router())
+		go http.ListenAndServe(addr, router())
 
 	}
 
@@ -204,6 +185,7 @@ func makeTransmitterConfigRequest(url string) (*TransmitterConfig, error) {
 	var configMetadata TransmitterConfig
 	err = json.Unmarshal(body, &configMetadata)
 	if err != nil {
+		log.Println("**** can't unmarkshall trans config right *****")
 		return nil, err
 	}
 
@@ -213,11 +195,13 @@ func makeTransmitterConfigRequest(url string) (*TransmitterConfig, error) {
 func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, string, error) {
 	client := &http.Client{}
 
+	log.Println("\n\n\ninside of getStreamConfig: ", url, streamId)
 	//add stream id to end of request
 	getStreamUrl := url + "?stream_id=" + streamId
 
 	req, err := http.NewRequest("GET", getStreamUrl, nil)
 	if err != nil {
+		log.Println("\n\n\n\n\bad request to get stream - ", getStreamUrl)
 		return "", "", err
 	}
 
@@ -236,7 +220,7 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 	type Stream struct {
 		StreamId string      `json:"stream_id"`
 		Iss      string      `json:"iss"`
-		Aud      string      `json:"aud"`
+		Aud      interface{} `json:"aud"`
 		Delivery SsfDelivery `json:"delivery"`
 	}
 
@@ -245,12 +229,13 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 	var stream Stream
 	err = json.Unmarshal(body, &stream)
 	if err != nil {
+		log.Println("\n\n\n\n couldn't unmarshall stream")
 		return "", "", err
 	}
 
 	println("streamid: ", stream.StreamId)
 	println("iss: ", stream.Iss)
-	println("aud: ", stream.Aud)
+	fmt.Println("aud: ", stream.Aud)
 	println("method: ", stream.Delivery.DeliveryMethod)
 	println(" endpoint_url:", stream.Delivery.EndpointUrl)
 
@@ -452,6 +437,7 @@ func (receiver *SsfReceiverImplementation) PrintStream() {
 	print("transmitterURL: ", receiver.transmitterUrl, "\n")
 	print("transmitterPollUrL: ", receiver.transmitterPollUrl, "\n")
 	print("transmitterStatusUrl: ", receiver.transmitterStatusUrl, "\n")
+	print("transmitterVerificationUrl: ", receiver.transmitterVerificationUrl, "\n")
 	print("eventsRequested: ")
 	fmt.Println(receiver.eventsRequested)
 	print("streamID: ", receiver.streamId, "\n")
@@ -459,14 +445,11 @@ func (receiver *SsfReceiverImplementation) PrintStream() {
 }
 
 func (receiver *SsfReceiverImplementation) RequestVerificationEvent() error {
+
 	if receiver.transmitterVerificationUrl == "" {
 		return errors.New("configured receiver does not have transmitter verification url")
 	}
 
-	return receiver.sendRequestVerificationRequest()
-}
-
-func (receiver *SsfReceiverImplementation) sendRequestVerificationRequest() error {
 	client := &http.Client{}
 
 	// make a streamID (receiver side id)
@@ -479,7 +462,7 @@ func (receiver *SsfReceiverImplementation) sendRequestVerificationRequest() erro
 	if err != nil {
 		return err
 	}
-
+	log.Println("url : ", receiver.transmitterVerificationUrl, "  requestbody: ", requestBody)
 	req, err := http.NewRequest("POST", receiver.transmitterVerificationUrl, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return err
@@ -557,6 +540,9 @@ func (receiver *SsfReceiverImplementation) GetStreamStatus() (StreamStatus, erro
 		return 0, errors.New("transmitter does not support stream status")
 	}
 
+	log.Println("inside stream status")
+	log.Println("\n\n status url:", receiver.transmitterStatusUrl, " streamid: ", receiver.streamId)
+
 	client := &http.Client{}
 	streamUrl := fmt.Sprintf("%s?stream_id=%s", receiver.transmitterStatusUrl, receiver.streamId)
 	req, err := http.NewRequest("GET", streamUrl, nil)
@@ -578,17 +564,15 @@ func (receiver *SsfReceiverImplementation) GetStreamStatus() (StreamStatus, erro
 	if err != nil {
 		return 0, err
 	}
-	type StatusResponse struct {
-		Status string `json:"status"`
-	}
 
-	var statusResponse StatusResponse
+	var statusResponse StreamStatusResponse
 	err = json.Unmarshal(body, &statusResponse)
 	if err != nil {
+		log.Println("\n\n\n\n Could not unmarshal status response....", err)
 		return 0, nil
 	}
 
-	return StatusEnumMap[statusResponse.Status], nil
+	return StatusEnumMap[strings.ToLower(statusResponse.Status)], nil
 }
 
 // Method to acknowledge a list of JTI's (unique ids for each SSF Event) with the
