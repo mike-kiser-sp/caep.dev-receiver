@@ -688,7 +688,7 @@ func receiveEvent(w http.ResponseWriter, r *http.Request) {
 	log.Println("body first", r.Body)
 	log.Println("original body: ", body)
 
-	var event = string(body[1:])
+	var event = string(body)
 
 	sets := map[string]string{
 		"event": event,
