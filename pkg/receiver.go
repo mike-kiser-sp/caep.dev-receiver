@@ -663,8 +663,12 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 			if err != nil {
 				return []events.SsfEvent{}, err
 			}
-
+			
+			ssfEventsList = append(ssfEventsList, ssfEvent)
+		}
+	}
 	
+	return ssfEventsList, nil
 }
 
 func receiveEvent(w http.ResponseWriter, r *http.Request) {
