@@ -651,31 +651,20 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 				}
 		*/
 
+		token.Claims.GetSubject()
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			return []events.SsfEvent{}, errors.New("Can't get JWT Claims")
 		}
 
-		eventSubject := make(map[string]interface{})
-		eventSubject["sub_id"] = claims["sub_id"]
-		//log.Println("subject is: ", eventSubject)
 		ssfEvents := claims["events"].(map[string]interface{})
-		//log.Println("ORIGINAL running list: ", ssfEvents)
-		for eventType, eventDetails := range ssfEvents {
-			log.Println("eventType:", eventType, "       eventSubject:", eventSubject)
-			ssfEvent, err := events.EventStructFromEvent(eventType, eventSubject, eventDetails, claims)
+		for eventType, eventSubject := range ssfEvents {
+			ssfEvent, err := events.EventStructFromEvent(eventType, eventSubject, claims)
 			if err != nil {
-				log.Println("error", err)
+				return []events.SsfEvent{}, err
 			}
-			//log.Println("running list: ", ssfEvents)
-			//fmt.Printf("%+v\n", ssfEvent)
-			log.Println("new Event: ", ssfEvent)
-			ssfEventsList = append(ssfEventsList, ssfEvent)
-		}
 
-	}
-
-	return ssfEventsList, nil
+	
 }
 
 func receiveEvent(w http.ResponseWriter, r *http.Request) {
