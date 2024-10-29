@@ -245,7 +245,7 @@ type SETVerification struct {
 	SubID  SubId `json:"sub_id"`
 	Events struct {
 		Event struct {
-			EventTimestamp int64  `json:"event_timestamp"`
+			EventTimestamp int64  `json:"event_timestamp,omitempty"`
 			State          string `json:"state,omitempty"`
 		} `json:"https://schemas.openid.net/secevent/ssf/event-type/verification"`
 	} `json:"events"`
