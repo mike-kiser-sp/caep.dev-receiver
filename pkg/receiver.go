@@ -701,6 +701,10 @@ func receiveEvent(w http.ResponseWriter, r *http.Request) {
 	//events, err := parseSsfEventSets(&ssfEventsSets.Sets, mainReceiver.transmitterJwks)
 	events, err := parseSsfEventSets(&sets, mainReceiver.transmitterJwks)
 	//log.Println("after parse events")
+
+	//ack event that was pushed by retuning a 202
+	w.WriteHeader(http.StatusAccepted)
+	
 	log.Println(err)
 	mainReceiver.pollCallback(events)
 
