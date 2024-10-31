@@ -137,7 +137,8 @@ func EventStructFromEvent(eventUri string, eventSubject interface{}, claimsJson 
 
 	floatTimestamp, ok := subjectAttributes["event_timestamp"].(float64)
 	if !ok {
-		return nil, errors.New("unable to parse event timestamp")
+		// timestamp is optional, so we'll let it default to 0 instead of erroring out
+		//return nil, errors.New("unable to parse event timestamp")
 	}
 
 	timestamp := int64(floatTimestamp)
