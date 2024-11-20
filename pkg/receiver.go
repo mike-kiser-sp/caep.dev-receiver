@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,6 +25,8 @@ import (
 	keyfunc "github.com/MicahParks/keyfunc/v3"
 	"github.com/golang-jwt/jwt/v5"
 
+	_ "github.com/mattn/go-sqlite3"
+
 	events "github.com/mike-kiser-sp/receiver/pkg/ssf_events"
 )
 
@@ -42,11 +45,13 @@ var tokenAuth *jwtauth.JWTAuth
 
 var mainReceiver SsfReceiverImplementation
 
+var db *sql.DB
+
 // Initializes the SSF Receiver based on the specified configuration.
 //
 // Returns an error if any process of configuring the receiver, registering
 // it with the transmitter, or setting up the poll interval failed
-func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, error) {
+func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string, listenPort string) (SsfReceiver, error) {
 	if cfg.TransmitterUrl == "" || len(cfg.EventsRequested) == 0 || cfg.AuthorizationToken == "" {
 		return nil, errors.New("Receiver Config - missing required field")
 	}
@@ -150,9 +155,9 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string) (SsfReceiver, err
 
 		// need to start listening on the url
 		log.Println(receiver)
-		fmt.Printf("Starting server on %v\n", addr)
+		fmt.Printf("Starting server on %v\n", listenPort)
 		mainReceiver = receiver
-		go http.ListenAndServe(addr, router())
+		go http.ListenAndServe(listenPort, router())
 
 	}
 
@@ -238,6 +243,11 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 	fmt.Println("aud: ", stream.Aud)
 	println("method: ", stream.Delivery.DeliveryMethod)
 	println(" endpoint_url:", stream.Delivery.EndpointUrl)
+
+	check_db()
+	db = open_db()
+	// func addStreamToDb(db sql.DB, stream_id string, audience_id string, stream_method string, stream_status string, stream_statusReason string, stream_data string)
+	addStreamToDb(*db, stream.StreamId, stream.Aud.(string), stream.Delivery.DeliveryMethod, "enabled", "", string(body))
 
 	return stream.StreamId, stream.Delivery.EndpointUrl, nil
 }
@@ -612,6 +622,8 @@ func acknowledgeEvents(sets *map[string]string, receiver *SsfReceiverImplementat
 func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.SsfEvent, error) {
 	var ssfEventsList []events.SsfEvent
 
+	check_db()
+	db = open_db()
 	//log.Println("Parsing Event")
 
 	for _, set := range *sets {
@@ -663,11 +675,14 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 			if err != nil {
 				return []events.SsfEvent{}, err
 			}
-			
+
 			ssfEventsList = append(ssfEventsList, ssfEvent)
 		}
+		audience, err := token.Claims.GetAudience()
+		addEventToDb(*db, strings.Join(audience[:], ","), mainReceiver.streamId, claims["jti"].(string), int64(claims["iat"].(float64)), string(bytes))
+
 	}
-	
+
 	return ssfEventsList, nil
 }
 
@@ -697,7 +712,7 @@ func receiveEvent(w http.ResponseWriter, r *http.Request) {
 
 	//ack event that was pushed by retuning a 202
 	w.WriteHeader(http.StatusAccepted)
-	
+
 	log.Println(err)
 	mainReceiver.pollCallback(events)
 
