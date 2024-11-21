@@ -246,6 +246,13 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 
 	check_db()
 	db = open_db()
+	audString := ""
+	for i, _ := range stream.Aud {
+		if i > 0 {
+
+			audString = audString + "," + stream.Aud[i].(string)
+		}
+	}
 	// func addStreamToDb(db sql.DB, stream_id string, audience_id string, stream_method string, stream_status string, stream_statusReason string, stream_data string)
 	addStreamToDb(*db, stream.StreamId, strings.Join(audience[:], ","), stream.Delivery.DeliveryMethod, "enabled", "", string(body))
 
