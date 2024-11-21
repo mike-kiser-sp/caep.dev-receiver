@@ -488,20 +488,6 @@ func (receiver *SsfReceiverImplementation) RequestVerificationEvent() error {
 
 	defer response.Body.Close()
 
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-	type StatusResponse struct {
-		Status string `json:"status"`
-		Reason string `json:"reason,omitempty"`
-	}
-
-	var statusResponse StatusResponse
-	err = json.Unmarshal(body, &statusResponse)
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
