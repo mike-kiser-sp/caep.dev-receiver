@@ -395,7 +395,7 @@ func check_db() {
 	statement.Exec()
 
 	// Create SETS (events) table
-	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS SETs (client_id TEXT, stream_id TEXT NOT NULL, jti TEXT NOT NULL, timestamp INTEGER NOT NULL, event TEXT NOT NULL, FOREIGN KEY(stream_id) REFERENCES streams(stream_id), PRIMARY KEY(stream_id, jti))")
+	statement, err = db.Prepare("CREATE TABLE IF NOT EXISTS SETs (event_type TEXT, client_id TEXT, stream_id TEXT NOT NULL, jti TEXT NOT NULL, timestamp INTEGER NOT NULL, event TEXT NOT NULL, FOREIGN KEY(stream_id) REFERENCES streams(stream_id), PRIMARY KEY(stream_id, jti))")
 	if err != nil {
 		log.Println("Error in creating table")
 	}
