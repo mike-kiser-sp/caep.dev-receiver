@@ -247,15 +247,17 @@ func getStreamConfig(url string, cfg ReceiverConfig, streamId string) (string, s
 	check_db()
 	db = open_db()
 
-	fullAud := stream.Aud.([]interface{})
-
 	audString := ""
-	for i, _ := range fullAud {
-		fmt.Println(fullAud[i].(string))
-		if i > 0 {
+	if fullAud, ok := stream.Aud.([]interface{}); ok {
+		for i, _ := range fullAud {
+			fmt.Println(fullAud[i].(string))
+			if i > 0 {
 
-			audString = audString + "," + fullAud[i].(string)
+				audString = audString + "," + fullAud[i].(string)
+			}
 		}
+	} else {
+		audString = stream.Aud.(string)
 	}
 
 	// func addStreamToDb(db sql.DB, stream_id string, audience_id string, stream_method string, stream_status string, stream_statusReason string, stream_data string)
