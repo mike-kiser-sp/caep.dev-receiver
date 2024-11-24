@@ -677,7 +677,7 @@ func parseSsfEventSets(sets *map[string]string, k keyfunc.Keyfunc) ([]events.Ssf
 			ssfEventsList = append(ssfEventsList, ssfEvent)
 		}
 		audience, err := token.Claims.GetAudience()
-		addEventToDb(*db, strings.Join(audience[:], ","), mainReceiver.streamId, claims["jti"].(string), int64(claims["iat"].(float64)), string(bytes))
+		addEventToDb(*db, eventType, strings.Join(audience[:], ","), mainReceiver.streamId, claims["jti"].(string), int64(claims["iat"].(float64)), string(bytes))
 
 	}
 

@@ -43,10 +43,10 @@ func deleteEventsFromDb(db sql.DB, jtis []string) {
 
 }
 
-func addEventToDb(db sql.DB, client_id string, stream_id string, jti string, timestamp int64, event string) {
+func addEventToDb(db sql.DB, event_type string, client_id string, stream_id string, jti string, timestamp int64, event string) {
 
 	// Insert into streams table
-	statement, err := db.Prepare("INSERT INTO SETs (client_id, stream_id, jti, timestamp, event) VALUES (?, ?, ?, ?, ?)")
+	statement, err := db.Prepare("INSERT INTO SETs (event_type, client_id, stream_id, jti, timestamp, event) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
 		log.Println("statement: ")
 		log.Println("Error in inserting to SET table")
