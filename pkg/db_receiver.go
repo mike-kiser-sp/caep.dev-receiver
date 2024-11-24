@@ -48,11 +48,11 @@ func addEventToDb(db sql.DB, event_type string, client_id string, stream_id stri
 	// Insert into streams table
 	statement, err := db.Prepare("INSERT INTO SETs (event_type, client_id, stream_id, jti, timestamp, event) VALUES (?, ?, ?, ?, ?)")
 	if err != nil {
-		log.Println("statement: ")
+		log.Println("statement: ", statement)
 		log.Println("Error in inserting to SET table")
 	}
 
-	_, err = statement.Exec(client_id, stream_id, jti, timestamp, event)
+	_, err = statement.Exec(event_type, client_id, stream_id, jti, timestamp, event)
 	if err != nil {
 		log.Println("Error in adding to event table", err)
 	}
