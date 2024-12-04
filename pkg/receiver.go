@@ -57,7 +57,7 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string, listenPort string
 	}
 
 	log.Println("url:", cfg.TransmitterUrl)
-	transmitterCfg, err := makeTransmitterConfigRequest(cfg.TransmitterUrl)
+	transmitterCfg, err := makeTransmitterConfigRequest(cfg.TransmitterUrl, cfg.AuthorizationToken)
 	if err != nil {
 		return nil, err
 	}
@@ -166,12 +166,15 @@ func ConfigureSsfReceiver(cfg ReceiverConfig, streamId string, listenPort string
 
 // Makes the Transmitter Configuration Metadata request to determine
 // the transmitter's configuration url for creating a stream
-func makeTransmitterConfigRequest(url string) (*TransmitterConfig, error) {
+func makeTransmitterConfigRequest(url string, bearerToken string) (*TransmitterConfig, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
+
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("Content-Type", "application/json")
 
 	response, err := client.Do(req)
 	if err != nil {
