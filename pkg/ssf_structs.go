@@ -117,6 +117,14 @@ type CreateStreamReq struct {
 	Description     string      `json:"description,omitempty"`
 }
 
+// Struct used to make a Create Stream request for the receiver
+type PatchStreamReq struct {
+	StreamId        string      `json:"stream_id"`
+	Delivery        SsfDelivery `json:"delivery,omitempty"`
+	EventsRequested []string    `json:"events_requested,omitempty"`
+	Description     string      `json:"description,omitempty"`
+}
+
 // Struct that defines the deliver method for the Create Stream Request
 type SsfDelivery struct {
 	DeliveryMethod string `json:"method"`
